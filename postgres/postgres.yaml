@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres-0
+  namespace: postgres
+  labels:
+    app: postgres
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: "chat-server"
+  volumes:
+    - name: data
+      hostPath:
+        type: Directory
+        path: /mnt/postgres-0
+  containers:
+    - name: postgres
+      image: postgres
+      ports:
+        - containerPort: 5432
+      volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+      env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: pass
+              name: postgres-pass
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: pass
+              name: postgres-pass
+      readinessProbe:
+        exec:
+          command: ["psql", "-w", "-U", "postgres", "-d", "postgres", "-c", "SELECT 1"]
+        initialDelaySeconds: 15
+        timeoutSeconds: 2
+      livenessProbe:
+        exec:
+          command: ["psql", "-w", "-U", "postgres", "-d", "postgres", "-c", "SELECT 1"]
+        initialDelaySeconds: 45
+        timeoutSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: postgres
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres

@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+  namespace: cls
+  labels:
+    app: php
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php
+  template:
+    metadata:
+      labels:
+        app: php
+    spec:
+      volumes:
+      - name: data
+        hostPath:
+          path: /mnt/office/CLS
+      containers:
+      - name: php
+        image: theenbyperor/wwfypc-php:1
+        volumeMounts:
+        - name: data
+          mountPath: /data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php
+  namespace: cls
+  labels:
+    app: php
+spec:
+  selector:
+    app: php
+  ports:
+  - protocol: TCP
+    port: 9000

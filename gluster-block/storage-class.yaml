@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1beta1
+kind: StorageClass
+metadata:
+  name: gluster-block
+provisioner: gluster.org/glusterblock
+parameters:
+  resturl: "http://10.1.0.3:8080" 
+  restuser: "admin"
+  restsecretnamespace: "kube-system"
+  restsecretname: "heketi-secret"
+  opmode: "heketi"
+  hacount: "1"

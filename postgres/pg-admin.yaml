@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-admin
+  namespace: postgres
+  labels:
+    app: pg-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pg-admin
+  template:
+    metadata:
+      labels:
+        app: pg-admin
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pg-admin-data
+      containers:
+        - name: pg-admin
+          image: dpage/pgadmin4
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /var/lib/pgadmin
+              name: data
+          envFrom:
+            - secretRef:
+                name: pg-admin-creds
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pg-admin-data
+  namespace: postgres
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "gluster-heketi"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: postgres
+  name: pg-admin
+  labels:
+    app: pg-admin
+spec:
+  selector:
+    app: pg-admin
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: pg-admin
+  namespace: postgres
+  annotations:
+    certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+spec:
+  tls:
+    - hosts:
+        - db.cardifftec.uk
+      secretName: pg-admin-tls
+  rules:
+  - host: db.cardifftec.uk
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: pg-admin
+          servicePort: 80
